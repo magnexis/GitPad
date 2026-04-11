@@ -1,0 +1,21 @@
+services:
+  renderer-dev:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev:renderer -- --host 0.0.0.0 --port 5173
+
+  ci:
+    build:
+      context: .
+      target: ci
+
+  desktop-headless:
+    build:
+      context: .
+      target: desktop
