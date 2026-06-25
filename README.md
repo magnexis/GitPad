@@ -5,6 +5,7 @@
 [![Styling: Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Tests](https://img.shields.io/badge/Tests-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F05032.svg)](docs/LICENSE)
+[![npm](https://img.shields.io/npm/v/gitpad-2?style=flat-square&logo=npm)](https://www.npmjs.com/package/gitpad-2)
 
 GitPad is a local-first desktop workspace for notes and code where each workspace is a real Git repository.
 
