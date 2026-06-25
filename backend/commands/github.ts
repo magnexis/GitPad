@@ -28,7 +28,8 @@ export class GitHubService {
   async push(workspacePath: string): Promise<TerminalResult> {
     try {
       const remote = await this.authenticatedRemote(workspacePath);
-      return runCommand(workspacePath, 'git', ['push', remote, 'HEAD:main'], 120000);
+      const branch = await this.getDefaultBranch(workspacePath);
+      return runCommand(workspacePath, 'git', ['push', remote, `HEAD:${branch}`], 120000);
     } catch (error) {
       return {
         command: 'git push',
@@ -43,7 +44,8 @@ export class GitHubService {
   async pull(workspacePath: string): Promise<TerminalResult> {
     try {
       const remote = await this.authenticatedRemote(workspacePath);
-      return runCommand(workspacePath, 'git', ['pull', '--rebase', remote, 'main'], 120000);
+      const branch = await this.getDefaultBranch(workspacePath);
+      return runCommand(workspacePath, 'git', ['pull', '--rebase', remote, branch], 120000);
     } catch (error) {
       return {
         command: 'git pull --rebase',
@@ -64,5 +66,14 @@ export class GitHubService {
     const origin = (await runGit(workspacePath, ['remote', 'get-url', 'origin'])).trim();
     if (!origin.startsWith('https://github.com/')) return origin;
     return origin.replace('https://github.com/', `https://x-access-token:${encodeURIComponent(token)}@github.com/`);
+  }
+
+  private async getDefaultBranch(workspacePath: string): Promise<string> {
+    try {
+      const ref = (await runGit(workspacePath, ['symbolic-ref', 'refs/remotes/origin/HEAD'])).trim();
+      return ref.replace('refs/remotes/origin/', '');
+    } catch {
+      return 'main';
+    }
   }
 }
