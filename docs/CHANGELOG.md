@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 - 2026-06-13
+
+### Fixed
+- Fixed hardcoded branch name in git operations; push/pull now correctly use the active branch
+- Resolved issue where branch-specific operations always targeted `main` regardless of current checkout
+
 ## Phase 6
 
 - Added local account system (register/login/logout/session persistence).

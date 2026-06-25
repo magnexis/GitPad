@@ -1,6 +1,6 @@
 {
   "name": "gitpad",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Git-powered local-first notes and code workspace.",
   "author": "GitPad Team",
   "main": "target/dist-electron/electron/main.js",
