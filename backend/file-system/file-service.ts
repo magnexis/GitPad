@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { AdvancedSearchInput, Backlink, FileNode, NoteGraph, NoteNode, SaveFileInput, SearchResult } from '../../src/shared/types.js';
-import { ensureDir, ignoredDirectories, isProbablyTextFile, resolveWorkspacePath, toRelative } from './paths.js';
+import { ensureDir, ignoredDirectories, isProbablyTextFile, matchesGitignorePattern, readGitignorePatterns, resolveWorkspacePath, toRelative } from './paths.js';
 import { commitPaths } from '../git/git-service.js';
 
 const hiddenSystemFiles = new Set(['.gitkeep']);
@@ -9,7 +9,8 @@ const hiddenSystemFiles = new Set(['.gitkeep']);
 export class FileService {
   async tree(workspacePath: string): Promise<FileNode[]> {
     const root = resolveWorkspacePath(workspacePath);
-    return this.readDirectory(root, root);
+    const gitignorePatterns = await readGitignorePatterns(root);
+    return this.readDirectory(root, root, gitignorePatterns);
   }
 
   async read(workspacePath: string, relativePath: string) {
@@ -212,20 +213,21 @@ export class FileService {
     return results.slice(0, 80);
   }
 
-  private async readDirectory(root: string, current: string): Promise<FileNode[]> {
+  private async readDirectory(root: string, current: string, gitignorePatterns: string[] = []): Promise<FileNode[]> {
     const entries = await fs.readdir(current, { withFileTypes: true });
     const nodes: FileNode[] = [];
     for (const entry of entries) {
       if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue;
       if (entry.isFile() && hiddenSystemFiles.has(entry.name)) continue;
       const absolute = path.join(current, entry.name);
+      if (gitignorePatterns.length > 0 && matchesGitignorePattern(absolute, gitignorePatterns)) continue;
       const relativePath = toRelative(root, absolute);
       nodes.push({
         name: entry.name,
         path: absolute,
         relativePath,
         type: entry.isDirectory() ? 'directory' : 'file',
-        children: entry.isDirectory() ? await this.readDirectory(root, absolute) : undefined
+        children: entry.isDirectory() ? await this.readDirectory(root, absolute, gitignorePatterns) : undefined
       });
     }
     return nodes.sort((a, b) => {
@@ -234,14 +236,18 @@ export class FileService {
     });
   }
 
-  private async walkTextFiles(root: string, current: string): Promise<string[]> {
+  private async walkTextFiles(root: string, current: string, gitignorePatterns?: string[]): Promise<string[]> {
+    if (!gitignorePatterns) {
+      gitignorePatterns = await readGitignorePatterns(root);
+    }
     const entries = await fs.readdir(current, { withFileTypes: true });
     const files: string[] = [];
     for (const entry of entries) {
       if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue;
       if (entry.isFile() && hiddenSystemFiles.has(entry.name)) continue;
       const absolute = path.join(current, entry.name);
-      if (entry.isDirectory()) files.push(...(await this.walkTextFiles(root, absolute)));
+      if (gitignorePatterns.length > 0 && matchesGitignorePattern(absolute, gitignorePatterns)) continue;
+      if (entry.isDirectory()) files.push(...(await this.walkTextFiles(root, absolute, gitignorePatterns)));
       if (entry.isFile() && isProbablyTextFile(absolute)) files.push(absolute);
     }
     return files;

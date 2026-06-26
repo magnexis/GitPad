@@ -3,6 +3,36 @@ import path from 'node:path';
 
 export const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'dist-electron', '.vite']);
 
+export async function readGitignorePatterns(workspacePath: string): Promise<string[]> {
+  const gitignorePath = path.join(workspacePath, '.gitignore');
+  try {
+    const content = await fs.readFile(gitignorePath, 'utf-8');
+    return content.split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'));
+  } catch {
+    return [];
+  }
+}
+
+export function matchesGitignorePattern(filePath: string, patterns: string[]): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  for (const pattern of patterns) {
+    if (pattern.endsWith('/')) {
+      if (normalized.startsWith(pattern) || normalized.includes('/' + pattern)) return true;
+    } else {
+      const baseName = path.basename(normalized);
+      if (baseName === pattern || normalized.endsWith('/' + pattern)) return true;
+    }
+    // Handle simple glob *
+    if (pattern.includes('*')) {
+      const regex = new RegExp(pattern.replace(/\*/g, '.*').replace(/\./g, '\\.'));
+      if (regex.test(baseName)) return true;
+    }
+  }
+  return false;
+}
+
 export function normalizeRelative(relativePath: string) {
   const normalized = relativePath.replaceAll('\\', '/').replace(/^\/+/, '');
   if (!normalized || normalized.includes('..')) {
